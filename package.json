@@ -1,0 +1,26 @@
+{
+  "name": "snarkyjs-workshop",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "exec": "tsc -p tsconfig.json && node dist/smart_contract.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/o1-labs/snarkyjs-workshop.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/o1-labs/snarkyjs-workshop/issues"
+  },
+  "homepage": "https://github.com/o1-labs/snarkyjs-workshop#readme",
+  "dependencies": {
+    "@o1labs/snarkyjs": "file:../snarkyjs",
+    "tslib": "^2.3.1",
+    "typescript": "^4.5.2"
+  }
+}
