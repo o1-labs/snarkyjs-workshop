@@ -1,34 +1,35 @@
 import {
-    Field,
-    Bool,
-    Group,
-    Circuit,
-    Scalar,
-    PrivateKey,
-    prop,
-    PublicKey,
-    CircuitValue,
-    Signature,
-    Poseidon
-} from '@o1labs/snarkyjs';
+  Field,
+  Bool,
+  Group,
+  Circuit,
+  Scalar,
+  PrivateKey,
+  prop,
+  PublicKey,
+  CircuitValue,
+  Signature,
+  Poseidon,
+  shutdown,
+} from "@o1labs/snarkyjs";
 
-const x0 = new Field('37');
+const x0 = new Field("37");
 //x0.assertEquals(37);
 
 // exercise about manipulating Field -> lame
 // exercise about creating a CircuitValue -> lame no :/ ??
 
 class Pair extends CircuitValue {
-    @prop first: Field;
-    @prop second: Field;
-    @prop thing: Bool;
+  @prop first: Field;
+  @prop second: Field;
+  @prop thing: Bool;
 
-    constructor(first: Field, second: Field, thing: Bool) {
-        super();
-        this.first = first;
-        this.second = second;
-        this.thing = thing;
-    }
+  constructor(first: Field, second: Field, thing: Bool) {
+    super();
+    this.first = first;
+    this.second = second;
+    this.thing = thing;
+  }
 }
 
 const pair = new Pair(new Field(1), new Field(2), new Bool(true));
@@ -45,15 +46,15 @@ const message = "Juicero stocks will go up";
 // StackMerkle ->
 
 function stringToFields(s: string): Field[] {
-    // prepend length
-    const res = [new Field(s.length)];
+  // prepend length
+  const res = [new Field(s.length)];
 
-    // convert
-    for (const c of s) {
-        const cc = c.charCodeAt(0);
-        res.push(new Field(cc));
-    }
-    return res;
+  // convert
+  for (const c of s) {
+    const cc = c.charCodeAt(0);
+    res.push(new Field(cc));
+  }
+  return res;
 }
 
 const digest = Poseidon.hash(stringToFields(message));
@@ -67,3 +68,4 @@ const signature = Signature.create(privkey, [digest]);
 const b = signature.verify(pubkey, [digest]);
 console.assert(b.toBoolean());
 
+shutdown();
