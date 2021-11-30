@@ -11,7 +11,38 @@ import {
   Signature,
   Poseidon,
   shutdown,
+  SmartContract,
+  state,
+  State,
+  method,
+  UInt64,
 } from "@o1labs/snarkyjs";
+
+class SimpleApp extends SmartContract {
+  @state(Field) value: State<Field>;
+
+  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
+    super(address);
+    this.balance.addInPlace(initialBalance);
+    this.value = State.init(x);
+  }
+
+  // Maybe don't return a promise here, it's a bit confusing
+  @method async update(y: Field) {
+    const x = await this.value.get();
+    x.square().mul(x).assertEquals(y);
+    this.value.set(y);
+  }
+}
+
+/*
+class SudokuRow {
+  @arrayProp(Field, 9) row: Field[]
+
+  constructor(row: Field[]) {
+    this.row = row;
+  }
+} */
 
 const x0 = new Field("37");
 //x0.assertEquals(37);
