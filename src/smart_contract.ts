@@ -5,156 +5,219 @@ import {
   Circuit,
   Scalar,
   PrivateKey,
+  prop,
   PublicKey,
+  CircuitValue,
   Signature,
+  Poseidon,
   shutdown,
+  SmartContract,
+  state,
+  State,
+  method,
+  UInt64,
+  Mina,
+  Party,
+  UInt32,
 } from "@o1labs/snarkyjs";
 
-/* This file demonstrates the classes and functions available in snarky.js */
+class SimpleApp extends SmartContract {
+  @state(Field) value: State<Field>;
 
-/* # Field */
-
-/* The most basic type is Field, which is an element of a prime order field.
-   The field is the [Pasta Fp field](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/) 
-   of order 28948022309329048855892746252171976963363056481941560715954676764349967630337 
-*/
-
-// You can initialize literal field elements with numbers, booleans, or decimal strings
-const x0: Field = new Field('37');
-// Typescript has type inference, so type annotations are usually optional.
-const x1 = new Field(37);
-console.assert(x0.equals(x1).toBoolean());
-
-// When initializing with booleans, true corresponds to the field element 1, and false corresponds to 0
-const b = new Field(true);
-console.assert(b.equals(Field.one).toBoolean());
-
-/* You can perform arithmetic operations on field elements.
-   The arithmetic methods can take any "fieldy" values as inputs: 
-   Field, number, string, or boolean 
-*/
-const z = x0.mul(x1).add(b).div(234).square().neg().sub('67').add(false);
-
-/* Field elements can be converted to their full, little endian binary representation. */
-let bits: Bool[] = z.toBits();
-console.log(bits.length);
-
-/* If you know (or want to assert) that a field element fits in fewer bits, you can
-   also unpack to a sequence of bits of a specified length. This is useful for doing
-   range proofs for example. */
-let smallFieldElt = new Field(23849);
-let smallBits: Bool[] = smallFieldElt.toBits(32);
-console.assert(smallBits.length === 32);
-
-/* There are lots of other useful method on field elements, like comparison methods.
-   Try right-clicking on the Field type, or and peeking the definition to see what they are.
-  
-   Or, you can look at the autocomplete list on a field element's methods. You can try typing
-   
-   z.
-
-   to see the methods on `z : Field` for example.
-*/
-
-/* # Bool */
-
-/* Another important type is Bool. The Bool type is the in-SNARK representation of booleans.
-   They are different from normal booleans in that you cannot write an if-statement whose
-   condition has type Bool. You need to use the Circuit.if function, which is like a value-level
-   if (or something like a ternary expression). We will see how that works in a little.
-*/
-
-/* Bool values can be initialized using booleans. */
-
-const b0 = new Bool(false);
-const b1 = new Bool(true);
-
-/* There are a number of methods available on Bool, like `and`, `or`, and `not`. */
-const b3: Bool = b0.and(b1.not()).or(b1);
-
-/* The most important thing you can do with a Bool is use the `Circuit.if` function
-   to conditionally select a value.
-
-   `Circuit.if` has the type
-
-   ```
-   if<T>(
-      b: Bool | boolean,
-      x: T,
-      y: T
-   ): T
-   ```
-
-   `Circuit.if(b, x, y)` evaluates to `x` if `b` is true, and evalutes to `y` if `b` is false,
-   so it works like a ternary if expression `b ? x : y`.
-
-   The generic type T can be instantiated to primitive types like Bool, Field, or Group, or
-   compound types like arrays (as long as the lengths are equal) or objects (as long as the keys
-   match).
-*/
-
-const v: Field = Circuit.if(b0, x0, z);
-/* b0 is false, so we expect v to be equal to z. */
-console.assert(v.equals(z).toBoolean());
-
-/* As mentioned, we can also use `Circuit.if` with compound types. */
-const c = Circuit.if(
-  b1,
-  {
-    foo: [x0, z],
-    bar: { someFieldElt: x1, someBool: b1 },
-  },
-  {
-    foo: [z, x0],
-    bar: { someFieldElt: z, someBool: b0 },
+  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
+    super(address);
+    this.balance.addInPlace(initialBalance);
+    this.value = State.init(x);
   }
-);
 
-console.assert(c.bar.someFieldElt.equals(x1).toBoolean());
+  // Maybe don't return a promise here, it's a bit confusing
+  @method async update(y: Field) {
+    const x = await this.value.get();
+    x.square().mul(x).assertEquals(y);
+    this.value.set(y);
+  }
+}
 
-/* # Signature
- */
+async function runSimpleApp() {
+  const Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+  const largeValue = 30000000000;
 
-/* The standard library of snarkyJS comes with a Signature scheme.
-   The message to be signed is an array of field elements, so any application level
-   message data needs to be encoded as an array of field elements before being signed.
-*/
+  // Maybe just return deterministically 10 accounts with a bunch of money in them
+  // Initialize an account so we can send some transactions
+  const account1 = PrivateKey.random();
+  Local.addAccount(account1.toPublicKey(), largeValue);
+  const account2 = PrivateKey.random();
+  Local.addAccount(account2.toPublicKey(), largeValue);
 
-let privKey: PrivateKey = PrivateKey.random();
-let pubKey: PublicKey = PublicKey.fromPrivateKey(privKey);
+  const snappPrivkey = PrivateKey.random();
+  const snappPubkey = snappPrivkey.toPublicKey();
 
-let msg0: Field[] = [0xba5eba11, 0x15, 0xbad].map((x) => new Field(x));
-let msg1: Field[] = [0xfa1afe1, 0xc0ffee].map((x) => new Field(x));
-let signature = Signature.create(privKey, msg0);
+  let snappInstance: SimpleApp;
+  const initSnappState = new Field(2);
 
-console.assert(signature.verify(pubKey, msg0).toBoolean());
-console.assert(!signature.verify(pubKey, msg1).toBoolean());
+  // Deploys the snapp
+  await Mina.transaction(account1, async () => {
+    // account2 sends 1000000000 to the new snapp account
+    const amount = UInt64.fromNumber(1000000000);
+    const p = await Party.createSigned(account2);
+    p.balance.subInPlace(amount);
 
-/* # Group
+    snappInstance = new SimpleApp(amount, snappPubkey, initSnappState);
+  })
+    .send()
+    .wait();
 
-  This type represents points on the [Pallas elliptic curve](https://electriccoin.co/blog/the-pasta-curves-for-halo-2-and-beyond/).
+  // Update the snapp
+  await Mina.transaction(account1, async () => {
+    await snappInstance.update(new Field(8));
+  })
+    .send()
+    .wait();
 
-  It is a prime-order curve defined by the equation
-  
-  y^2 = x^3 + 5
-*/
+  await Mina.transaction(account1, async () => {
+    // Fails, because the provided value is wrong.
+    await snappInstance.update(new Field(109));
+  })
+    .send()
+    .wait();
 
-/* You can initialize elements as literals as follows: */
-let g0 = new Group(-1, 2);
-let g1 = new Group({ x: -2, y: 2 });
+  // .catch(e => console.log('error', e));
+  const a = await Mina.getAccount(snappPubkey);
 
-/* There is also a predefined generator. */
-let g2 = Group.generator;
+  console.log('final state value', a.snapp.appState[0].toString());
+}
 
-/* Points can be added, subtracted, and negated */
-let g3 = g0.add(g1).neg().sub(g2);
+class SimpleAppWithPrize extends SmartContract {
+  @state(Field) value: State<Field>;
 
-/* Points can also be scaled by scalar field elements. Note that Field and Scalar
-   are distinct and represent elements of distinct fields. */
-let s0: Scalar = Scalar.random();
-let g4: Group = g3.scale(s0);
-console.log(Group.toJSON(g4));
+  constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
+    super(address);
+    this.balance.addInPlace(initialBalance);
+    this.value = State.init(x);
+  }
 
-import * as Exercise1 from './exercise_1.js';
+  static prizeAmount: UInt64 = UInt64.fromNumber(10);
+
+  @method async update(y: Field) {
+    this.balance.subInPlace(SimpleAppWithPrize.prizeAmount);
+
+    const x = await this.value.get();
+    x.square().mul(x).assertEquals(y);
+    this.value.set(y);
+  }
+}
+
+async function runSimpleAppWithPrize() {
+  const Local = Mina.LocalBlockchain();
+  Mina.setActiveInstance(Local);
+  const largeValue = 30000000000;
+
+  // Maybe just return deterministically 10 accounts with a bunch of money in them
+  // Initialize an account so we can send some transactions
+  const account1 = PrivateKey.random();
+  Local.addAccount(account1.toPublicKey(), largeValue);
+  const account2 = PrivateKey.random();
+  Local.addAccount(account2.toPublicKey(), largeValue);
+
+  const snappPrivkey = PrivateKey.random();
+  const snappPubkey = snappPrivkey.toPublicKey();
+
+  let snappInstance: SimpleAppWithPrize;
+  const initSnappState = new Field(2);
+
+  // Deploys the snapp
+  await Mina.transaction(account1, async () => {
+    // account2 sends 1000000000 to the new snapp account
+    const amount = UInt64.fromNumber(1000000000);
+    const p = await Party.createSigned(account2);
+    p.balance.subInPlace(amount);
+
+    snappInstance = new SimpleAppWithPrize(amount, snappPubkey, initSnappState);
+  })
+    .send()
+    .wait();
+
+  // Update the snapp
+  await Mina.transaction(account1, async () => {
+    await snappInstance.update(new Field(8));
+    const winner = await Party.createSigned(account2);
+    winner.balance.addInPlace(SimpleAppWithPrize.prizeAmount);
+  })
+    .send()
+    .wait();
+
+  // .catch(e => console.log('error', e));
+  const a = await Mina.getAccount(snappPubkey);
+
+  console.log('final state value', a.snapp.appState[0].toString());
+  console.log('final state value', a.snapp.appState[0].toString());
+}
+/*
+class SudokuRow {
+  @arrayProp(Field, 9) row: Field[]
+
+  constructor(row: Field[]) {
+    this.row = row;
+  }
+} */
+
+const x0 = new Field("37");
+//x0.assertEquals(37);
+
+// exercise about manipulating Field -> lame
+// exercise about creating a CircuitValue -> lame no :/ ??
+
+class Pair extends CircuitValue {
+  @prop first: Field;
+  @prop second: Field;
+  @prop thing: Bool;
+
+  constructor(first: Field, second: Field, thing: Bool) {
+    super();
+    this.first = first;
+    this.second = second;
+    this.thing = thing;
+  }
+}
+
+const pair = new Pair(new Field(1), new Field(2), new Bool(true));
+
+//const digest = Poseidon.hash(pair.toFieldElements());
+
+// exercise about signature
+// and hashing
+
+const message = "Juicero stocks will go up";
+
+// keyedAccumulator (key->value interface)
+// SetAccumulator -> add/check membership (set interface)
+// StackMerkle ->
+
+function stringToFields(s: string): Field[] {
+  // prepend length
+  const res = [new Field(s.length)];
+
+  // convert
+  for (const c of s) {
+    const cc = c.charCodeAt(0);
+    res.push(new Field(cc));
+  }
+  return res;
+}
+
+const digest = Poseidon.hash(stringToFields(message));
+
+// create signature
+const privkey = PrivateKey.random();
+const pubkey = privkey.toPublicKey();
+const signature = Signature.create(privkey, [digest]);
+
+// verify just to check
+const b = signature.verify(pubkey, [digest]);
+console.assert(b.toBoolean());
+
+import * as Exercise1 from './exercise_1';
 await Exercise1.runSimpleApp();
+
 shutdown();
