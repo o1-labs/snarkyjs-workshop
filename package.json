@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/o1-labs/snarkyjs-workshop#readme",
   "dependencies": {
-    "snarkyjs": "https://github.com/o1-labs/snarkyjs#92a7bfa910374fa3edf01db970ec2b71a7a58d56",
+    "@o1labs/snarkyjs": "file:../snarkyjs",
     "typescript": "^4.5.2"
   }
 }
