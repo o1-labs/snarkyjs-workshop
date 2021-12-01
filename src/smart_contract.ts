@@ -7,7 +7,8 @@ import {
   PrivateKey,
   PublicKey,
   Signature,
-} from 'snarkyjs';
+  shutdown,
+} from "@o1labs/snarkyjs";
 
 /* This file demonstrates the classes and functions available in snarky.js */
 
@@ -153,3 +154,7 @@ let g3 = g0.add(g1).neg().sub(g2);
 let s0: Scalar = Scalar.random();
 let g4: Group = g3.scale(s0);
 console.log(Group.toJSON(g4));
+
+import * as Exercise1 from './exercise_1.js';
+await Exercise1.runSimpleApp();
+shutdown();
