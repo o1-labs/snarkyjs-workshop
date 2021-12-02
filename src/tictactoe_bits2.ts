@@ -13,42 +13,45 @@ import {
   Mina,
   Party,
   shutdown,
-  Optional,
-} from '@o1labs/snarkyjs';
+} from "@o1labs/snarkyjs";
 
 class Board {
-  board: Optional<Bool>[][];
+  // the first 9 bits indicates the player who played in a cell
+  // the laster 9 bits indicates if the cell has been played
+  board: Bool[];
 
-  constructor(serialized_board: Field) {
-    const bits = serialized_board.toBits();
-    let board = [];
-    for (let i = 0; i < 3; i++) {
-      let row = [];
-      for (let j = 0; j < 3; j++) {
-        const is_played = bits[i * 3 + j];
-        const player = bits[i * 3 + j + 9];
-        row.push(new Optional(is_played, player));
-      }
-      board.push(row);
-    }
-    this.board = board;
+  constructor(board: Field) {
+    this.board = board.toBits(9 * 2);
   }
 
   serialize(): Field {
-    let is_played = [];
-    let player = [];
+    return Field.ofBits(this.board);
+  }
+
+  print_state() {
     for (let i = 0; i < 3; i++) {
+      let row = "| ";
       for (let j = 0; j < 3; j++) {
-        is_played.push(this.board[i][j].isSome);
-        player.push(this.board[i][j].value);
+        const is_played = Board.to_played(i, j);
+        const who_played = Board.to_player(i, j);
+        let token = "_";
+        if (this.board[is_played].toBoolean()) {
+          token = this.board[who_played].toBoolean() ? "X" : "O";
+        }
+
+        row += token + " | ";
       }
+      console.log(row);
     }
-    return Field.ofBits(is_played.concat(player));
+    console.log("---\n");
   }
 
   update(x: Field, y: Field, player_token: Bool) {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
+        const is_played = Board.to_played(i, j);
+        const who_played = Board.to_player(i, j);
+
         // is this the cell the player wants to play?
         const to_update = Circuit.if(
           x.equals(new Field(i)).and(y.equals(new Field(j))),
@@ -59,34 +62,23 @@ class Board {
         // make sure we can play there
         Circuit.if(
           to_update,
-          this.board[i][j].isSome,
+          this.board[is_played],
           new Bool(false)
         ).assertEquals(new Bool(false));
 
         // copy the board (or update if this is the cell the player wants to play)
-        this.board[i][j] = Circuit.if(
+        this.board[is_played] = Circuit.if(
           to_update,
-          new Optional(new Bool(true), player_token),
-          this.board[i][j]
+          new Bool(true),
+          this.board[is_played]
+        );
+        this.board[who_played] = Circuit.if(
+          to_update,
+          player_token,
+          this.board[who_played]
         );
       }
     }
-  }
-
-  print_state() {
-    for (let i = 0; i < 3; i++) {
-      let row = '| ';
-      for (let j = 0; j < 3; j++) {
-        let token = '_';
-        if (this.board[i][j].isSome.toBoolean()) {
-          token = this.board[i][j].value.toBoolean() ? 'X' : 'O';
-        }
-
-        row += token + ' | ';
-      }
-      console.log(row);
-    }
-    console.log('---\n');
   }
 
   check_winner(): Bool {
@@ -94,41 +86,85 @@ class Board {
 
     // check rows
     for (let i = 0; i < 3; i++) {
-      let row = this.board[i][0].isSome;
-      row = row.and(this.board[i][1].isSome);
-      row = row.and(this.board[i][2].isSome);
-      row = row.and(this.board[i][0].value.equals(this.board[i][1].value));
-      row = row.and(this.board[i][1].value.equals(this.board[i][2].value));
-      won = Circuit.if(row, new Bool(true), won);
+      const played = this.board[Board.to_played(i, 0)]
+        .equals(new Bool(true))
+        .and(this.board[Board.to_played(i, 1)].equals(new Bool(true)))
+        .and(this.board[Board.to_played(i, 2)].equals(new Bool(true)));
+
+      const row = this.board[Board.to_player(i, 0)]
+        .equals(this.board[Board.to_player(i, 1)])
+        .and(
+          this.board[Board.to_player(i, 1)].equals(
+            this.board[Board.to_player(i, 2)]
+          )
+        );
+
+      won = Circuit.if(row.and(played), new Bool(true), won);
+
+      console.log(
+        "player:",
+        this.board[Board.to_player(i, 0)].toBoolean(),
+        this.board[Board.to_player(i, 1)].toBoolean(),
+        this.board[Board.to_player(i, 2)].toBoolean()
+      );
     }
 
     // check cols
     for (let i = 0; i < 3; i++) {
-      let col = this.board[0][i].isSome;
-      col = col.and(this.board[1][i].isSome);
-      col = col.and(this.board[2][i].isSome);
-      col = col.and(this.board[0][i].value.equals(this.board[1][i].value));
-      col = col.and(this.board[1][i].value.equals(this.board[2][i].value));
-      won = Circuit.if(col, new Bool(true), won);
+      const played = this.board[Board.to_played(0, i)]
+        .equals(new Bool(true))
+        .and(this.board[Board.to_played(1, i)].equals(new Bool(true)))
+        .and(this.board[Board.to_played(2, i)].equals(new Bool(true)));
+
+      const row = this.board[Board.to_player(0, i)]
+        .equals(this.board[Board.to_player(1, i)])
+        .and(
+          this.board[Board.to_player(1, i)].equals(
+            this.board[Board.to_player(2, i)]
+          )
+        );
+
+      won = Circuit.if(row.and(played), new Bool(true), won);
     }
 
     // check diagonals
-    let diag1 = this.board[0][0].isSome;
-    diag1 = diag1.and(this.board[1][1].isSome);
-    diag1 = diag1.and(this.board[2][2].isSome);
-    diag1 = diag1.and(this.board[0][0].value.equals(this.board[1][1].value));
-    diag1 = diag1.and(this.board[1][1].value.equals(this.board[2][2].value));
-    won = Circuit.if(diag1, new Bool(true), won);
+    const played1 = this.board[Board.to_played(0, 0)]
+      .equals(new Bool(true))
+      .and(this.board[Board.to_played(1, 1)].equals(new Bool(true)))
+      .and(this.board[Board.to_played(2, 2)].equals(new Bool(true)));
 
-    let diag2 = this.board[0][2].isSome;
-    diag2 = diag2.and(this.board[1][1].isSome);
-    diag2 = diag2.and(this.board[0][2].isSome);
-    diag2 = diag2.and(this.board[0][2].value.equals(this.board[1][1].value));
-    diag2 = diag2.and(this.board[1][1].value.equals(this.board[2][0].value));
-    won = Circuit.if(diag2, new Bool(true), won);
+    const diag1 = this.board[Board.to_player(0, 0)]
+      .equals(this.board[Board.to_player(1, 1)])
+      .and(
+        this.board[Board.to_player(1, 1)].equals(
+          this.board[Board.to_player(2, 2)]
+        )
+      );
+    won = Circuit.if(diag1.and(played1), new Bool(true), won);
+
+    const played2 = this.board[Board.to_played(0, 2)]
+      .equals(new Bool(true))
+      .and(this.board[Board.to_played(1, 1)].equals(new Bool(true)))
+      .and(this.board[Board.to_played(2, 2)].equals(new Bool(true)));
+    const diag2 = this.board[Board.to_player(0, 2)]
+      .equals(this.board[Board.to_player(1, 1)])
+      .and(
+        this.board[Board.to_player(1, 1)].equals(
+          this.board[Board.to_player(2, 0)]
+        )
+      );
+    won = Circuit.if(diag2.and(played2), new Bool(true), won);
 
     //
     return won;
+  }
+
+  static to_player(x: number, y: number) {
+    return x * 3 + y;
+  }
+
+  static to_played(x: number, y: number) {
+    return x * 3 + y + 9;
   }
 }
 
@@ -185,7 +221,7 @@ class TicTacToe extends SmartContract {
       } else if (pubkey.equals(player2).toBoolean()) {
         return two;
       } else {
-        throw 'invalid player';
+        throw "invalid player";
       }
     });
     player.equals(Field.one).or(player.equals(two)).assertEquals(true);
@@ -226,19 +262,19 @@ class TicTacToe extends SmartContract {
 }
 
 export async function main() {
-  console.log('main');
+  console.log("main");
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
 
   const player1 = Local.testAccounts[0].privateKey;
   const player2 = Local.testAccounts[1].privateKey;
-  console.log('got testing account');
+  console.log("got testing account");
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
 
   // Create a new instance of the contract
-  console.log('\n\n====== DEPLOYING ======\n\n');
+  console.log("\n\n====== DEPLOYING ======\n\n");
   let snappInstance: TicTacToe;
   await Mina.transaction(player1, async () => {
     // player2 sends 1000000000 to the new snapp account
@@ -258,15 +294,15 @@ export async function main() {
 
   // debug
   let b = await Mina.getAccount(snappPubkey);
-  console.log('init state');
+  console.log("init state");
   for (const i in [0, 1, 2, 3, 4, 5, 6, 7]) {
-    console.log('state', i, ':', b.snapp.appState[i].toString());
+    console.log("state", i, ":", b.snapp.appState[i].toString());
   }
 
   new Board(b.snapp.appState[0]).print_state();
 
   // play
-  console.log('\n\n====== FIRST MOVE ======\n\n');
+  console.log("\n\n====== FIRST MOVE ======\n\n");
   await Mina.transaction(player1, async () => {
     snappInstance.play(player1.toPublicKey(), Field.zero, Field.zero);
   })
@@ -275,12 +311,12 @@ export async function main() {
 
   // debug
   b = await Mina.getAccount(snappPubkey);
-  console.log('after first move');
+  console.log("after first move");
   new Board(b.snapp.appState[0]).print_state();
-  console.log('did someone win?', b.snapp.appState[6].toString());
+  console.log("did someone win?", b.snapp.appState[6].toString());
 
   // play
-  console.log('\n\n====== SECOND MOVE ======\n\n');
+  console.log("\n\n====== SECOND MOVE ======\n\n");
   const two = new Field(2);
   await Mina.transaction(player1, async () => {
     snappInstance
@@ -292,12 +328,12 @@ export async function main() {
 
   // debug
   b = await Mina.getAccount(snappPubkey);
-  console.log('after second move');
+  console.log("after second move");
   new Board(b.snapp.appState[0]).print_state();
-  console.log('did someone win?', b.snapp.appState[6].toString());
+  console.log("did someone win?", b.snapp.appState[6].toString());
 
   // play
-  console.log('\n\n====== THIRD MOVE ======\n\n');
+  console.log("\n\n====== THIRD MOVE ======\n\n");
   await Mina.transaction(player1, async () => {
     snappInstance
       .play(player1.toPublicKey(), Field.one, Field.one)
@@ -308,12 +344,12 @@ export async function main() {
 
   // debug
   b = await Mina.getAccount(snappPubkey);
-  console.log('after third move');
+  console.log("after third move");
   new Board(b.snapp.appState[0]).print_state();
-  console.log('did someone win?', b.snapp.appState[6].toString());
+  console.log("did someone win?", b.snapp.appState[6].toString());
 
   // play
-  console.log('\n\n====== FOURTH MOVE ======\n\n');
+  console.log("\n\n====== FOURTH MOVE ======\n\n");
   await Mina.transaction(player2, async () => {
     snappInstance
       .play(player2.toPublicKey(), two, Field.one)
@@ -324,12 +360,12 @@ export async function main() {
 
   // debug
   b = await Mina.getAccount(snappPubkey);
-  console.log('after fourth move');
+  console.log("after fourth move");
   new Board(b.snapp.appState[0]).print_state();
-  console.log('did someone win?', b.snapp.appState[6].toString());
+  console.log("did someone win?", b.snapp.appState[6].toString());
 
   // play
-  console.log('\n\n====== FIFTH MOVE ======\n\n');
+  console.log("\n\n====== FIFTH MOVE ======\n\n");
   await Mina.transaction(player1, async () => {
     snappInstance
       .play(player1.toPublicKey(), two, two)
@@ -340,9 +376,9 @@ export async function main() {
 
   // debug
   b = await Mina.getAccount(snappPubkey);
-  console.log('after fifth move');
+  console.log("after fifth move");
   new Board(b.snapp.appState[0]).print_state();
-  console.log('did someone win?', b.snapp.appState[6].toString());
+  console.log("did someone win?", b.snapp.appState[6].toString());
 
   //
   shutdown();
