@@ -9,10 +9,13 @@ import {
   UInt64,
   Mina,
   Party,
+  Poseidon,
 } from "@o1labs/snarkyjs";
 
-class Exercise1 extends SmartContract {
+class Exercise3 extends SmartContract {
   @state(Field) value: State<Field>;
+  
+  static UpdateReward: UInt64 = UInt64.fromNumber(100);
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
@@ -20,10 +23,10 @@ class Exercise1 extends SmartContract {
     this.value = State.init(x);
   }
 
-  @method async update(cubed: Field) {
+  @method async update() {
     const x = await this.value.get();
-    x.square().mul(x).assertEquals(cubed);
-    this.value.set(cubed);
+    this.value.set(Poseidon.hash([x]));
+    this.balance.subInPlace(Exercise3.UpdateReward);
   }
 }
 
@@ -32,11 +35,12 @@ export async function run() {
   Mina.setActiveInstance(Local);
   const account1 = Local.testAccounts[0].privateKey;
   const account2 = Local.testAccounts[1].privateKey;
+  const account2Pubkey = account2.toPublicKey();
 
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
 
-  let snappInstance: Exercise1;
+  let snappInstance: Exercise3;
   const initSnappState = new Field(3);
 
   // Deploys the snapp
@@ -46,15 +50,16 @@ export async function run() {
     const p = await Party.createSigned(account2);
     p.balance.subInPlace(amount);
 
-    snappInstance = new Exercise1(amount, snappPubkey, initSnappState);
+    snappInstance = new Exercise3(amount, snappPubkey, initSnappState);
   })
     .send()
     .wait();
 
-  // Update the snapp
+  // Update the snapp, send the reward to account2
   await Mina.transaction(account1, async () => {
-    // 27 = 3^3
-    await snappInstance.update(new Field(27));
+    await snappInstance.update();
+    const winner = Party.createUnsigned(account2Pubkey);
+    winner.balance.addInPlace(Exercise3.UpdateReward);
   })
     .send()
     .wait();

@@ -9,21 +9,32 @@ import {
   UInt64,
   Mina,
   Party,
+  Poseidon,
 } from "@o1labs/snarkyjs";
 
-class Exercise1 extends SmartContract {
-  @state(Field) value: State<Field>;
+// We can define functions. Use a for-loop to define a function
+// that applies Poseidon.hash `n` times.
+function hashNTimes(n: number, x: Field): Field {
+  let res = x;
+  for (let i = 0; i < n; ++i) {
+    res = Poseidon.hash([res]);
+  }
+  return res;
+}
 
+class Exercise4 extends SmartContract {
+  @state(Field) value: State<Field>;
+  
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
     this.balance.addInPlace(initialBalance);
     this.value = State.init(x);
   }
 
-  @method async update(cubed: Field) {
+  @method async update() {
     const x = await this.value.get();
-    x.square().mul(x).assertEquals(cubed);
-    this.value.set(cubed);
+    // apply the hash function 10 times
+    this.value.set(hashNTimes(10, x));
   }
 }
 
@@ -36,7 +47,7 @@ export async function run() {
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
 
-  let snappInstance: Exercise1;
+  let snappInstance: Exercise4;
   const initSnappState = new Field(3);
 
   // Deploys the snapp
@@ -46,15 +57,14 @@ export async function run() {
     const p = await Party.createSigned(account2);
     p.balance.subInPlace(amount);
 
-    snappInstance = new Exercise1(amount, snappPubkey, initSnappState);
+    snappInstance = new Exercise4(amount, snappPubkey, initSnappState);
   })
     .send()
     .wait();
 
-  // Update the snapp
+  // Update the snapp, send the reward to account2
   await Mina.transaction(account1, async () => {
-    // 27 = 3^3
-    await snappInstance.update(new Field(27));
+    await snappInstance.update();
   })
     .send()
     .wait();
