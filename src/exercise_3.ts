@@ -11,10 +11,12 @@ import {
   Party,
 } from '@o1labs/snarkyjs';
 
-class Exercise2 extends SmartContract {
+class Exercise3 extends SmartContract {
   @state(Field) value: State<Field>;
 
-  static UpdateReward: UInt64 = UInt64.fromNumber(1337);
+  static get UpdateReward() : UInt64 {
+    return UInt64.fromNumber(1337);
+  }
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
@@ -26,7 +28,7 @@ class Exercise2 extends SmartContract {
     const x = await this.value.get();
     x.square().mul(x).assertEquals(cubed);
     this.value.set(cubed);
-    this.balance.subInPlace(Exercise2.UpdateReward);
+    this.balance.subInPlace(Exercise3.UpdateReward);
   }
 }
 
@@ -40,7 +42,7 @@ export async function run() {
   const snappPrivkey = PrivateKey.random();
   const snappPubkey = snappPrivkey.toPublicKey();
 
-  let snappInstance: Exercise2;
+  let snappInstance: Exercise3;
   const initSnappState = new Field(3);
 
   // Deploys the snapp
@@ -50,7 +52,7 @@ export async function run() {
     const p = await Party.createSigned(account2);
     p.balance.subInPlace(amount);
 
-    snappInstance = new Exercise2(amount, snappPubkey, initSnappState);
+    snappInstance = new Exercise3(amount, snappPubkey, initSnappState);
   })
     .send()
     .wait();
@@ -60,7 +62,7 @@ export async function run() {
     // 27 = 3^3
     await snappInstance.update(new Field(27));
     const winner = Party.createUnsigned(account2Pubkey);
-    winner.balance.addInPlace(Exercise2.UpdateReward);
+    winner.balance.addInPlace(Exercise3.UpdateReward);
   })
     .send()
     .wait();
