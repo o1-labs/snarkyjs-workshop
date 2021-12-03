@@ -9,12 +9,12 @@ import {
   UInt64,
   Mina,
   Party,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 class Exercise2 extends SmartContract {
   @state(Field) value: State<Field>;
-  
-  static UpdateReward: UInt64 = UInt64.fromNumber(100);
+
+  static UpdateReward: UInt64 = UInt64.fromNumber(1337);
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
@@ -64,11 +64,11 @@ export async function run() {
   })
     .send()
     .wait();
-    
+
   console.log('');
   console.log('Exercise 2');
 
   const a = await Mina.getAccount(account2Pubkey);
 
-  console.log('Winner balance', a.balance);
+  console.log('Winner balance', a.balance.toString());
 }

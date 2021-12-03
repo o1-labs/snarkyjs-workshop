@@ -20,6 +20,7 @@
   "homepage": "https://github.com/o1-labs/snarkyjs-workshop#readme",
   "dependencies": {
     "@o1labs/snarkyjs": "file:../snarkyjs",
+    "prettier": "^2.5.0",
     "typescript": "^4.5.2"
   }
 }

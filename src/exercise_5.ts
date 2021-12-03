@@ -13,14 +13,14 @@ import {
   Poseidon,
   CircuitValue,
   prop,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 // This exercise involves a user defined data type.
 
 class PersonalInfo extends CircuitValue {
   @prop age: UInt32;
   @prop favoriteNumber: UInt32;
-  
+
   constructor(age: UInt32, favoriteNumber: UInt32) {
     super();
     this.age = age;
@@ -36,7 +36,8 @@ class Exercise5 extends SmartContract {
     initialBalance: UInt64,
     address: PublicKey,
     x: Field,
-    info: PersonalInfo) {
+    info: PersonalInfo
+  ) {
     super(address);
     this.balance.addInPlace(initialBalance);
     this.value = State.init(x);
@@ -75,7 +76,8 @@ export async function run() {
 
     const info = new PersonalInfo(
       UInt64.fromNumber(28),
-      UInt64.fromNumber(123456));
+      UInt64.fromNumber(123456)
+    );
     snappInstance = new Exercise5(amount, snappPubkey, initSnappState, info);
   })
     .send()
@@ -91,5 +93,7 @@ export async function run() {
 
   const a = await Mina.getAccount(snappPubkey);
 
+  console.log('');
+  console.log('Exercise 5');
   console.log('final state value', a.snapp.appState[0].toString());
 }

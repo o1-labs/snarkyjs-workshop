@@ -10,7 +10,7 @@ import {
   Mina,
   Party,
   Group,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 class HelloWorld extends SmartContract {
   @state(Field) value: State<Field>;
@@ -32,7 +32,7 @@ function messingAround() {
   const x = new Field(10);
   console.log(x.add(x).toString());
   console.log(x.square().toString());
-  
+
   const g = Group.generator;
   // (g + g) - g = g
   g.add(g).neg().add(g).assertEquals(g);
@@ -71,12 +71,12 @@ async function runSimpleApp() {
     .wait();
 
   await Mina.transaction(account1, async () => {
-  // Fails, because the provided value is wrong.
+    // Fails, because the provided value is wrong.
     await snappInstance.update(new Field(109));
   })
     .send()
     .wait()
-    .catch(e => console.log('second update attempt failed', e));
+    .catch((e) => console.log('second update attempt failed', e));
 
   const a = await Mina.getAccount(snappPubkey);
 

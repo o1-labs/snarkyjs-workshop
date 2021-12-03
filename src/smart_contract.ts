@@ -20,7 +20,7 @@ import {
   Party,
   UInt32,
   Int64,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 class SimpleApp extends SmartContract {
   @state(Field) value: State<Field>;
@@ -163,7 +163,7 @@ class SudokuRow {
   }
 } */
 
-const x0 = new Field("37");
+const x0 = new Field('37');
 //x0.assertEquals(37);
 
 // exercise about manipulating Field -> lame
@@ -189,7 +189,7 @@ const pair = new Pair(new Field(1), new Field(2), new Bool(true));
 // exercise about signature
 // and hashing
 
-const message = "Juicero stocks will go up";
+const message = 'Juicero stocks will go up';
 
 // keyedAccumulator (key->value interface)
 // SetAccumulator -> add/check membership (set interface)

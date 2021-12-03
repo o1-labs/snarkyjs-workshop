@@ -9,7 +9,7 @@ import {
   UInt64,
   Mina,
   Party,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 class Exercise1 extends SmartContract {
   @state(Field) value: State<Field>;
@@ -61,5 +61,6 @@ export async function run() {
 
   const a = await Mina.getAccount(snappPubkey);
 
+  console.log('Exercise 1');
   console.log('final state value', a.snapp.appState[0].toString());
 }

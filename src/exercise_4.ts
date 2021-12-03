@@ -10,7 +10,7 @@ import {
   Mina,
   Party,
   Poseidon,
-} from "@o1labs/snarkyjs";
+} from '@o1labs/snarkyjs';
 
 // We can define functions. Use a for-loop to define a function
 // that applies Poseidon.hash `n` times.
@@ -24,7 +24,7 @@ function hashNTimes(n: number, x: Field): Field {
 
 class Exercise4 extends SmartContract {
   @state(Field) value: State<Field>;
-  
+
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
     this.balance.addInPlace(initialBalance);
@@ -70,6 +70,9 @@ export async function run() {
     .wait();
 
   const a = await Mina.getAccount(snappPubkey);
+
+  console.log('');
+  console.log('Exercise 4');
 
   console.log('final state value', a.snapp.appState[0].toString());
 }
