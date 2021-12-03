@@ -14,6 +14,7 @@ import {
   Party,
   shutdown,
   Optional,
+  Signature,
 } from '@o1labs/snarkyjs';
 
 class Board {
@@ -61,7 +62,7 @@ class Board {
           to_update,
           this.board[i][j].isSome,
           new Bool(false)
-        ).assertEquals(new Bool(false));
+        ).assertEquals(false);
 
         // copy the board (or update if this is the cell the player wants to play)
         this.board[i][j] = Circuit.if(
@@ -139,10 +140,10 @@ class TicTacToe extends SmartContract {
   @state(PublicKey) player1: State<PublicKey>;
   // player 2's public key
   @state(PublicKey) player2: State<PublicKey>;
-  // 1 -> player 1 | 2 -> player 2
-  @state(Field) nextPlayer: State<Field>;
+  // false -> player 1 | true -> player 2
+  @state(Bool) nextPlayer: State<Bool>;
   // defaults to false, set to true when a player wins
-  @state(Bool) won: State<Bool>;
+  @state(Bool) gameDone: State<Bool>;
 
   // initialization
   constructor(
@@ -154,8 +155,8 @@ class TicTacToe extends SmartContract {
     super(address);
     this.balance.addInPlace(initialBalance);
     this.board = State.init(Field.zero);
-    this.nextPlayer = State.init(Field.one); // player 1 starts
-    this.won = State.init(new Bool(false));
+    this.nextPlayer = State.init(new Bool(false)); // player 1 starts
+    this.gameDone = State.init(new Bool(false));
 
     // set the public key of the players
     this.player1 = State.init(player1);
@@ -168,60 +169,54 @@ class TicTacToe extends SmartContract {
   // 0 | x  x  x
   // 1 | x  x  x
   // 2 | x  x  x
-  @method async play(pubkey: PublicKey, x: Field, y: Field) {
-    // TODO: ensure player controls that publickey
+  @method async play(
+    pubkey: PublicKey,
+    signature: Signature,
+    x: Field,
+    y: Field
+  ) {
+    // 1. if the game is already finished, abort.
+    const finished = await this.gameDone.get();
+    finished.assertEquals(false);
 
-    // if someone already won, abort
-    const already_won = await this.won.get();
-    already_won.assertEquals(false);
+    // 2. ensure that we know the private key associated to the public key
+    //    and that our public key is known to the snapp
+
+    // ensure player owns the associated private key
+    signature.verify(pubkey, [x, y]).assertEquals(true);
 
     // ensure player is valid
     const player1 = await this.player1.get();
     const player2 = await this.player2.get();
-    const two = new Field(2);
-    const player = Circuit.witness(Field, () => {
-      if (pubkey.equals(player1).toBoolean()) {
-        return Field.one;
-      } else if (pubkey.equals(player2).toBoolean()) {
-        return two;
-      } else {
-        throw 'invalid player';
-      }
-    });
-    player.equals(Field.one).or(player.equals(two)).assertEquals(true);
+    Bool.or(pubkey.equals(player1), pubkey.equals(player2)).assertEquals(true);
 
-    const expected_pubkey = Circuit.if(
-      player.equals(Field.one),
-      player1,
-      player2
+    // 3. Make sure that its our turn,
+    //    and set the state for the next player
+
+    // get player token
+    const player = Circuit.if(
+      pubkey.equals(player1),
+      new Bool(false),
+      new Bool(true)
     );
-    pubkey.assertEquals(expected_pubkey);
 
     // ensure its their turn
     const nextPlayer = await this.nextPlayer.get();
     nextPlayer.assertEquals(player);
 
     // set the next player
-    const np = Circuit.if(nextPlayer.equals(Field.one), two, Field.one);
-    this.nextPlayer.set(np);
+    this.nextPlayer.set(player.not());
 
-    // get board
+    // 4. get and deserialize the board
     let board = new Board(await this.board.get());
 
-    // update the board
-    const player_token = Circuit.if(
-      player.equals(Field.one),
-      new Bool(false),
-      new Bool(true)
-    );
-    board.update(x, y, player_token);
-
-    // check if someone won and update the winner
-    const won = board.check_winner();
-    this.won.set(won);
-
-    // update the state
+    // 5. update the board (and the state) with our move
+    board.update(x, y, player);
     this.board.set(board.serialize());
+
+    // 6. did I just win? If so, update the state as well
+    const won = board.check_winner();
+    this.gameDone.set(won);
   }
 }
 
@@ -268,7 +263,15 @@ export async function main() {
   // play
   console.log('\n\n====== FIRST MOVE ======\n\n');
   await Mina.transaction(player1, async () => {
-    snappInstance.play(player1.toPublicKey(), Field.zero, Field.zero);
+    const x = Field.zero;
+    const y = Field.zero;
+    const signature = Signature.create(player1, [x, y]);
+    snappInstance.play(
+      player1.toPublicKey(),
+      signature,
+      Field.zero,
+      Field.zero
+    );
   })
     .send()
     .wait();
@@ -283,8 +286,11 @@ export async function main() {
   console.log('\n\n====== SECOND MOVE ======\n\n');
   const two = new Field(2);
   await Mina.transaction(player1, async () => {
+    const x = Field.one;
+    const y = Field.zero;
+    const signature = Signature.create(player2, [x, y]);
     snappInstance
-      .play(player2.toPublicKey(), Field.one, Field.zero)
+      .play(player2.toPublicKey(), signature, Field.one, Field.zero)
       .catch((e) => console.log(e));
   })
     .send()
@@ -299,8 +305,11 @@ export async function main() {
   // play
   console.log('\n\n====== THIRD MOVE ======\n\n');
   await Mina.transaction(player1, async () => {
+    const x = Field.one;
+    const y = Field.one;
+    const signature = Signature.create(player1, [x, y]);
     snappInstance
-      .play(player1.toPublicKey(), Field.one, Field.one)
+      .play(player1.toPublicKey(), signature, Field.one, Field.one)
       .catch((e) => console.log(e));
   })
     .send()
@@ -315,8 +324,11 @@ export async function main() {
   // play
   console.log('\n\n====== FOURTH MOVE ======\n\n');
   await Mina.transaction(player2, async () => {
+    const x = two;
+    const y = Field.one;
+    const signature = Signature.create(player2, [x, y]);
     snappInstance
-      .play(player2.toPublicKey(), two, Field.one)
+      .play(player2.toPublicKey(), signature, two, Field.one)
       .catch((e) => console.log(e));
   })
     .send()
@@ -331,8 +343,11 @@ export async function main() {
   // play
   console.log('\n\n====== FIFTH MOVE ======\n\n');
   await Mina.transaction(player1, async () => {
+    const x = two;
+    const y = two;
+    const signature = Signature.create(player1, [x, y]);
     snappInstance
-      .play(player1.toPublicKey(), two, two)
+      .play(player1.toPublicKey(), signature, two, two)
       .catch((e) => console.log(e));
   })
     .send()
