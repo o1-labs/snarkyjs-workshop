@@ -15,7 +15,9 @@ import {
 class Exercise3 extends SmartContract {
   @state(Field) value: State<Field>;
 
-  static UpdateReward: UInt64 = UInt64.fromNumber(100);
+  static get UpdateReward() : UInt64 {
+    return UInt64.fromNumber(1337);
+  }
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
