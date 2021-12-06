@@ -10,6 +10,8 @@ import {
   Mina,
   Party,
   Poseidon,
+  shutdown,
+  isReady,
 } from '@o1labs/snarkyjs';
 
 // We can define functions. Use a for-loop to define a function
@@ -39,6 +41,8 @@ class Exercise4 extends SmartContract {
 }
 
 export async function run() {
+  await isReady;
+
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
   const account1 = Local.testAccounts[0].privateKey;
@@ -76,3 +80,6 @@ export async function run() {
 
   console.log('final state value', a.snapp.appState[0].toString());
 }
+
+run();
+shutdown();

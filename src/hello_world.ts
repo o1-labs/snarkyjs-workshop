@@ -10,6 +10,8 @@ import {
   Mina,
   Party,
   Group,
+  shutdown,
+  isReady,
 } from '@o1labs/snarkyjs';
 
 class HelloWorld extends SmartContract {
@@ -39,6 +41,8 @@ function messingAround() {
 }
 
 async function runSimpleApp() {
+  await isReady;
+
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
   const account1 = Local.testAccounts[0].privateKey;
@@ -82,3 +86,5 @@ async function runSimpleApp() {
 
   console.log('final state value', a.snapp.appState[0].toString());
 }
+
+shutdown();

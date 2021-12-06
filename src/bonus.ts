@@ -11,6 +11,7 @@ import {
   proofSystem,
   branch,
   MerkleStack,
+  shutdown,
 } from '@o1labs/snarkyjs';
 
 const AccountDbDepth: number = 32;
@@ -145,3 +146,5 @@ class RollupProof extends ProofWithInput<RollupStateTransition> {
     );
   }
 }
+
+shutdown();

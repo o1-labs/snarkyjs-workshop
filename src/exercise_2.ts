@@ -11,9 +11,8 @@ import {
   Party,
   Poseidon,
   isReady,
+  shutdown,
 } from '@o1labs/snarkyjs';
-
-await isReady;
 
 class Exercise2 extends SmartContract {
   @state(Field) x: State<Field>;
@@ -36,6 +35,8 @@ class Exercise2 extends SmartContract {
 }
 
 export async function run() {
+  await isReady;
+
   const Local = Mina.LocalBlockchain();
   Mina.setActiveInstance(Local);
   const account1 = Local.testAccounts[0].privateKey;
@@ -76,3 +77,6 @@ export async function run() {
 
   console.log('final state value', a.snapp.appState[0].toString());
 }
+
+run();
+shutdown();

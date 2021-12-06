@@ -16,6 +16,8 @@ import {
   prop,
   Signature,
   Bool,
+  isReady,
+  shutdown,
 } from '@o1labs/snarkyjs';
 
 // This exercise involves a user defined data type.
@@ -89,6 +91,8 @@ class Exercise5 extends SmartContract {
 }
 
 export async function run() {
+  await isReady;
+
   // Set up some keypairs for the account
   const privateKeys: Array<PrivateKey> = [];
   const publicKeys: Array<PublicKey> = [];
@@ -144,3 +148,6 @@ export async function run() {
   console.log('Exercise 5');
   console.log('account2 balance', a.balance.toString());
 }
+
+run();
+shutdown();
