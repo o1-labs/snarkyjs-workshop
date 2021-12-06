@@ -10,7 +10,10 @@ import {
   Mina,
   Party,
   Poseidon,
+  isReady,
 } from '@o1labs/snarkyjs';
+
+await isReady;
 
 class Exercise3 extends SmartContract {
   @state(Field) value: State<Field>;
