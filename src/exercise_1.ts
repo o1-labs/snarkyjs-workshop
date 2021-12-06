@@ -12,18 +12,18 @@ import {
 } from '@o1labs/snarkyjs';
 
 class Exercise1 extends SmartContract {
-  @state(Field) value: State<Field>;
+  @state(Field) x: State<Field>;
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
     this.balance.addInPlace(initialBalance);
-    this.value = State.init(x);
+    this.x = State.init(x);
   }
 
   @method async update(cubed: Field) {
-    const x = await this.value.get();
+    const x = await this.x.get();
     x.square().mul(x).assertEquals(cubed);
-    this.value.set(cubed);
+    this.x.set(cubed);
   }
 }
 

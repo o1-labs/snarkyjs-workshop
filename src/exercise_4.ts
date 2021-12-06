@@ -23,18 +23,18 @@ function hashNTimes(n: number, x: Field): Field {
 }
 
 class Exercise4 extends SmartContract {
-  @state(Field) value: State<Field>;
+  @state(Field) x: State<Field>;
 
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
     this.balance.addInPlace(initialBalance);
-    this.value = State.init(x);
+    this.x = State.init(x);
   }
 
   @method async update() {
-    const x = await this.value.get();
+    const x = await this.x.get();
     // apply the hash function 10 times
-    this.value.set(hashNTimes(10, x));
+    this.x.set(hashNTimes(10, x));
   }
 }
 

@@ -16,7 +16,7 @@ import {
 await isReady;
 
 class Exercise3 extends SmartContract {
-  @state(Field) value: State<Field>;
+  @state(Field) x: State<Field>;
 
   static get UpdateReward(): UInt64 {
     return UInt64.fromNumber(1337);
@@ -25,12 +25,12 @@ class Exercise3 extends SmartContract {
   constructor(initialBalance: UInt64, address: PublicKey, x: Field) {
     super(address);
     this.balance.addInPlace(initialBalance);
-    this.value = State.init(x);
+    this.x = State.init(x);
   }
 
   @method async update() {
-    const x = await this.value.get();
-    this.value.set(Poseidon.hash([x]));
+    const x = await this.x.get();
+    this.x.set(Poseidon.hash([x]));
     this.balance.subInPlace(Exercise3.UpdateReward);
   }
 }
