@@ -9,12 +9,13 @@ import {
   UInt64,
   Mina,
   Party,
+  Poseidon,
 } from '@o1labs/snarkyjs';
 
 class Exercise3 extends SmartContract {
   @state(Field) value: State<Field>;
 
-  static get UpdateReward() : UInt64 {
+  static get UpdateReward(): UInt64 {
     return UInt64.fromNumber(1337);
   }
 
@@ -24,10 +25,9 @@ class Exercise3 extends SmartContract {
     this.value = State.init(x);
   }
 
-  @method async update(cubed: Field) {
+  @method async update() {
     const x = await this.value.get();
-    x.square().mul(x).assertEquals(cubed);
-    this.value.set(cubed);
+    this.value.set(Poseidon.hash([x]));
     this.balance.subInPlace(Exercise3.UpdateReward);
   }
 }
@@ -60,7 +60,7 @@ export async function run() {
   // Update the snapp, send the reward to account2
   await Mina.transaction(account1, async () => {
     // 27 = 3^3
-    await snappInstance.update(new Field(27));
+    await snappInstance.update();
     const winner = Party.createUnsigned(account2Pubkey);
     winner.balance.addInPlace(Exercise3.UpdateReward);
   })

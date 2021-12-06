@@ -15,7 +15,7 @@ import {
 class Exercise2 extends SmartContract {
   @state(Field) value: State<Field>;
 
-  static get UpdateReward() : UInt64 {
+  static get UpdateReward(): UInt64 {
     return UInt64.fromNumber(1337);
   }
 
