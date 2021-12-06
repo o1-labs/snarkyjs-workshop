@@ -14,15 +14,13 @@ Make sure you have node version >= 16.4!
 Then you can run individual examples with:
 
 ```console
-node dist/01_exercise.js
-node dist/02_exercise.js
+node dist/1_exercise.js
+node dist/2_exercise.js
 ...
 ```
 
-If you change examples, you have to re-run typescript:
+If you change an example, you have to re-run typescript first:
 
 ```console
-npx tsc && node dist/01_exercise.js
-npx tsc && node dist/02_exercise.js
-...
+npx tsc && node dist/1_exercise.js
 ```
