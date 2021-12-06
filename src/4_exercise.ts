@@ -75,7 +75,6 @@ export async function run() {
 
   const a = await Mina.getAccount(snappPubkey);
 
-  console.log('');
   console.log('Exercise 4');
 
   console.log('final state value', a.snapp.appState[0].toString());

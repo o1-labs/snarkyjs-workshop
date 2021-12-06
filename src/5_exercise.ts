@@ -144,7 +144,6 @@ export async function run() {
 
   const a = await Mina.getAccount(account2.toPublicKey());
 
-  console.log('');
   console.log('Exercise 5');
   console.log('account2 balance', a.balance.toString());
 }

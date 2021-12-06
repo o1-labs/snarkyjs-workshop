@@ -71,7 +71,6 @@ export async function run() {
     .send()
     .wait();
 
-  console.log('');
   console.log('Exercise 3');
 
   const a = await Mina.getAccount(account2Pubkey);
