@@ -80,11 +80,13 @@ async function runSimpleApp() {
   })
     .send()
     .wait()
-    .catch((e) => console.log('second update attempt failed', e));
+    .catch((e) => console.log('second update attempt failed'));
 
   const a = await Mina.getAccount(snappPubkey);
 
   console.log('final state value', a.snapp.appState[0].toString());
 }
+
+runSimpleApp();
 
 shutdown();
