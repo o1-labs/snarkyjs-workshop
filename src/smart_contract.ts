@@ -20,7 +20,10 @@ import {
   Party,
   UInt32,
   Int64,
+  isReady,
 } from '@o1labs/snarkyjs';
+
+await isReady;
 
 class SimpleApp extends SmartContract {
   @state(Field) value: State<Field>;

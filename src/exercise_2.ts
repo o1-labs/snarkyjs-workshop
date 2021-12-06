@@ -12,8 +12,6 @@ import {
   isReady,
 } from '@o1labs/snarkyjs';
 
-await isReady;
-
 class Exercise2 extends SmartContract {
   @state(Field) value: State<Field>;
 
