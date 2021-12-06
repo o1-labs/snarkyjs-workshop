@@ -24,8 +24,7 @@ class Exercise1 extends SmartContract {
 
   @method async update(cubed: Field) {
     const x = await this.x.get();
-    x.square().mul(x).assertEquals(cubed);
-    this.x.set(cubed);
+    throw new Error('TODO: Set the state to x^3');
   }
 }
 

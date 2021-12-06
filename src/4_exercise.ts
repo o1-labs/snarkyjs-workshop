@@ -17,11 +17,7 @@ import {
 // We can define functions. Use a for-loop to define a function
 // that applies Poseidon.hash `n` times.
 function hashNTimes(n: number, x: Field): Field {
-  let res = x;
-  for (let i = 0; i < n; ++i) {
-    res = Poseidon.hash([res]);
-  }
-  return res;
+  throw new Error('TODO: hashNTimes');
 }
 
 class Exercise4 extends SmartContract {

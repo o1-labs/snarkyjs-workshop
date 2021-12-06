@@ -40,19 +40,7 @@ class SignatureWithSigner extends CircuitValue {
 }
 
 function containsPublicKey(xs: Array<PublicKey>, x: PublicKey): Bool {
-  return xs.map((y) => x.equals(y)).reduce(Bool.or);
-}
-
-/**
- * TypeScript's type system is very powerful, and can enable us to
- * write a generic version of the [containsPublicKey] function
- */
-interface Eq {
-  equals(y: this): Bool;
-}
-
-function containsGeneric<T extends Eq>(xs: Array<T>, x: T): Bool {
-  return xs.map((y) => x.equals(y)).reduce(Bool.or);
+  throw new Error('TODO: Implement containsPublicKey');
 }
 
 // This implements a snapp account that can be used if a user has
