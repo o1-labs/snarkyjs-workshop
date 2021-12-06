@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "exec": "tsc -p tsconfig.json && node dist/smart_contract.js"
+    "exec": "tsc && node dist/smart_contract.js"
   },
   "repository": {
     "type": "git",
@@ -16,6 +16,9 @@
   "type": "module",
   "bugs": {
     "url": "https://github.com/o1-labs/snarkyjs-workshop/issues"
+  },
+  "engines": {
+    "node": ">=16.4.0"
   },
   "homepage": "https://github.com/o1-labs/snarkyjs-workshop#readme",
   "dependencies": {
