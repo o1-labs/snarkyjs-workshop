@@ -18,7 +18,7 @@ import {
   Bool,
   isReady,
   shutdown,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 // This exercise involves a user defined data type.
 class SignatureWithSigner extends CircuitValue {

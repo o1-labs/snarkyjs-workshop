@@ -1,4 +1,4 @@
-import { Field, shutdown, isReady } from '@o1labs/snarkyjs';
+import { Field, shutdown, isReady } from 'snarkyjs';
 
 await isReady;
 

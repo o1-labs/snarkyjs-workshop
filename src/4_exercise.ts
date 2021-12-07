@@ -12,7 +12,7 @@ import {
   Poseidon,
   shutdown,
   isReady,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 // We can define functions. Use a for-loop to define a function
 // that applies Poseidon.hash `n` times.

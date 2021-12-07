@@ -12,7 +12,7 @@ import {
   Poseidon,
   isReady,
   shutdown,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class Exercise3 extends SmartContract {
   @state(Field) x: State<Field>;

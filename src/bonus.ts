@@ -12,7 +12,7 @@ import {
   branch,
   MerkleStack,
   shutdown,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 const AccountDbDepth: number = 32;
 const AccountDb = KeyedAccumulatorFactory<PublicKey, RollupAccount>(

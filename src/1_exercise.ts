@@ -11,7 +11,7 @@ import {
   Party,
   isReady,
   shutdown,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class Exercise1 extends SmartContract {
   @state(Field) x: State<Field>;

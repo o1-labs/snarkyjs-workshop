@@ -12,7 +12,7 @@ import {
   Group,
   shutdown,
   isReady,
-} from '@o1labs/snarkyjs';
+} from 'snarkyjs';
 
 class HelloWorld extends SmartContract {
   @state(Field) value: State<Field>;
