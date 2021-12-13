@@ -4,7 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "exec": "tsc && node dist/smart_contract.js"
+    "exec": "tsc && node dist/smart_contract.js",
+    "helloworld": "npx tsc && node dist/hello_world.js",
+    "run1": "npx tsc && node dist/1_exercise.js",
+    "run2": "npx tsc && node dist/2_exercise.js",
+    "run3": "npx tsc && node dist/3_exercise.js",
+    "run4": "npx tsc && node dist/4_exercise.js",
+    "run5": "npx tsc && node dist/5_exercise.js",
+    "bonus": "npx tsc && node dist/bonus.js"
   },
   "repository": {
     "type": "git",
